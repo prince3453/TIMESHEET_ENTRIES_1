@@ -57,17 +57,26 @@ else:
             + "h"
         )
         options = list(zip(unpaid_df["id"].astype(str), selection_labels))
-        selected = st.selectbox(
-            "Select an unpaid entry to mark as Paid",
-            options=options,
-            format_func=lambda item: item[1],
-        )
-        if st.button("Mark as Paid"):
-            entry_id = int(selected[0])
-            update_paid_status(entry_id)
-            load_entries.clear()
-            st.success("Entry marked as Paid.")
-            df = load_entries()
+
+        with st.form("approval_form"):
+            selected = st.selectbox(
+                "Select an unpaid entry to mark as Paid",
+                options=options,
+                format_func=lambda item: item[1],
+            )
+            username = st.text_input("User ID")
+            password = st.text_input("Password", type="password")
+            approve_pressed = st.form_submit_button("Mark as Paid")
+
+        if approve_pressed:
+            if username == "admin" and password == "$Prince3453":
+                entry_id = int(selected[0])
+                update_paid_status(entry_id)
+                load_entries.clear()
+                st.success("Entry marked as Paid.")
+                df = load_entries()
+            else:
+                st.error("Invalid credentials. Use admin / $Prince3453 to approve.")
 
     st.subheader("Recent Entries")
     st.dataframe(df.drop(columns=["id"]), use_container_width=True)
