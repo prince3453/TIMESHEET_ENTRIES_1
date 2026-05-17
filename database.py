@@ -19,10 +19,18 @@ def init_db():
             hours_worked REAL NOT NULL,
             employee_name TEXT NOT NULL,
             project_name TEXT NOT NULL,
+            paid_status TEXT NOT NULL DEFAULT 'Paid',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
     conn.commit()
+    cursor.execute("PRAGMA table_info(TIMESHEET_ENTRIES)")
+    columns = [row[1] for row in cursor.fetchall()]
+    if "paid_status" not in columns:
+        cursor.execute(
+            "ALTER TABLE TIMESHEET_ENTRIES ADD COLUMN paid_status TEXT NOT NULL DEFAULT 'Paid'"
+        )
+        conn.commit()
     conn.close()
 
 
@@ -37,9 +45,9 @@ def insert_timesheet_entry(entry_date, hours_worked, employee_name, project_name
     cursor = conn.cursor()
     cursor.execute(
         """INSERT INTO TIMESHEET_ENTRIES 
-           (entry_date, hours_worked, employee_name, project_name) 
-           VALUES (?, ?, ?, ?)""",
-        (entry_date.isoformat(), hours_worked, employee_name, project_name),
+           (entry_date, hours_worked, employee_name, project_name, paid_status) 
+           VALUES (?, ?, ?, ?, ?)""",
+        (entry_date.isoformat(), hours_worked, employee_name, project_name, "Paid"),
     )
     conn.commit()
     conn.close()
@@ -50,7 +58,7 @@ def fetch_recent_entries(limit=50):
     """Fetch recent timesheet entries from the database."""
     conn = get_connection()
     df = pd.read_sql_query(
-        """SELECT entry_date, hours_worked, employee_name, project_name, created_at
+        """SELECT entry_date, hours_worked, employee_name, project_name, paid_status, created_at
            FROM TIMESHEET_ENTRIES
            ORDER BY created_at DESC
            LIMIT ?""",
