@@ -1,9 +1,13 @@
+import os
 import streamlit as st
 from datetime import date
 from database import insert_timesheet_entry, fetch_recent_entries, update_paid_status, update_all_paid_status
 
 st.set_page_config(page_title="Timesheet Tracker", layout="centered")
 st.title("Timesheet Tracker")
+
+ADMIN_USER = os.environ.get("ADMIN_USER")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
 
 PROJECTS = [
     "Project Whetstone",
@@ -54,7 +58,9 @@ else:
         all_paid_pressed = col2.form_submit_button("Mark as All Paid")
 
     if approve_pressed or all_paid_pressed:
-        if username == "admin" and password == "$Prince3453":
+        if not ADMIN_USER or not ADMIN_PASSWORD:
+            st.error("Admin approval is not configured. Set ADMIN_USER and ADMIN_PASSWORD.")
+        elif username == ADMIN_USER and password == ADMIN_PASSWORD:
             if approve_pressed:
                 try:
                     entry_id = int(entry_id_input)
@@ -73,7 +79,7 @@ else:
                     st.success("All unpaid entries marked as Paid.")
                     df = load_entries()
         else:
-            st.error("Invalid credentials. Use admin / $Prince3453 to approve.")
+            st.error("Invalid credentials.")
 
     if not unpaid_df.empty:
         st.markdown("**Unpaid entries currently available:**")

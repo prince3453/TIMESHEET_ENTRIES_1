@@ -17,3 +17,11 @@ A simple Streamlit app template for you to modify!
    ```
    $ streamlit run streamlit_app.py
    ```
+
+3. Set admin approval credentials using environment variables before launching the app:
+
+   ```bash
+   export ADMIN_USER=admin
+   export ADMIN_PASSWORD="$Prince3453"
+   streamlit run streamlit_app.py
+   ```
