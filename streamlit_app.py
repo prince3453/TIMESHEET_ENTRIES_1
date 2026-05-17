@@ -44,39 +44,32 @@ if df.empty:
 else:
     unpaid_df = df[df["paid_status"] == "Unpaid"]
 
-    if not unpaid_df.empty:
-        st.subheader("Approve Unpaid Entries")
-        selection_labels = (
-            unpaid_df["created_at"]
-            + " — "
-            + unpaid_df["employee_name"]
-            + " / "
-            + unpaid_df["project_name"]
-            + " / "
-            + unpaid_df["hours_worked"].astype(str)
-            + "h"
-        )
-        options = list(zip(unpaid_df["id"].astype(str), selection_labels))
+    st.subheader("Admin Approval")
+    with st.form("approval_form"):
+        entry_id_input = st.text_input("Entry ID to approve")
+        username = st.text_input("User ID")
+        password = st.text_input("Password", type="password")
+        approve_pressed = st.form_submit_button("Mark as Paid")
 
-        with st.form("approval_form"):
-            selected = st.selectbox(
-                "Select an unpaid entry to mark as Paid",
-                options=options,
-                format_func=lambda item: item[1],
-            )
-            username = st.text_input("User ID")
-            password = st.text_input("Password", type="password")
-            approve_pressed = st.form_submit_button("Mark as Paid")
-
-        if approve_pressed:
-            if username == "admin" and password == "$Prince3453":
-                entry_id = int(selected[0])
+    if approve_pressed:
+        if username == "admin" and password == "$Prince3453":
+            try:
+                entry_id = int(entry_id_input)
                 update_paid_status(entry_id)
                 load_entries.clear()
-                st.success("Entry marked as Paid.")
+                st.success(f"Entry {entry_id} marked as Paid.")
                 df = load_entries()
-            else:
-                st.error("Invalid credentials. Use admin / $Prince3453 to approve.")
+            except ValueError:
+                st.error("Please enter a valid numeric Entry ID.")
+        else:
+            st.error("Invalid credentials. Use admin / $Prince3453 to approve.")
+
+    if not unpaid_df.empty:
+        st.markdown("**Unpaid entries currently available:**")
+        for _, row in unpaid_df.iterrows():
+            st.write(
+                f"ID {row['id']} — {row['created_at']} — {row['employee_name']} / {row['project_name']} / {row['hours_worked']}h"
+            )
 
     st.subheader("Recent Entries")
     st.dataframe(df.drop(columns=["id"]), use_container_width=True)
