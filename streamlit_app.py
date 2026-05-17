@@ -6,8 +6,8 @@ from database import insert_timesheet_entry, fetch_recent_entries, update_paid_s
 st.set_page_config(page_title="Timesheet Tracker", layout="centered")
 st.title("Timesheet Tracker")
 
-ADMIN_USER = os.environ.get("ADMIN_USER")
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
+ADMIN_USER = os.environ.get("ADMIN_USER", "admin")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "$Prince3453")
 
 PROJECTS = [
     "Project Whetstone",
