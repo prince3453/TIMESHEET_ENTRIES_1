@@ -58,7 +58,7 @@ def fetch_recent_entries(limit=50):
     """Fetch recent timesheet entries from the database."""
     conn = get_connection()
     df = pd.read_sql_query(
-        """SELECT entry_date, hours_worked, employee_name, project_name, paid_status, created_at
+        """SELECT id, entry_date, hours_worked, employee_name, project_name, paid_status, created_at
            FROM TIMESHEET_ENTRIES
            ORDER BY created_at DESC
            LIMIT ?""",
@@ -67,6 +67,19 @@ def fetch_recent_entries(limit=50):
     )
     conn.close()
     return df
+
+
+def update_paid_status(entry_id, status="Paid"):
+    """Update the paid status of a timesheet entry."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE TIMESHEET_ENTRIES SET paid_status = ? WHERE id = ?",
+        (status, entry_id),
+    )
+    conn.commit()
+    conn.close()
+    fetch_recent_entries.clear()
 
 
 # Initialize database on import

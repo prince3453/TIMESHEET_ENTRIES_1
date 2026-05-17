@@ -1,6 +1,6 @@
 import streamlit as st
 from datetime import date
-from database import get_connection, insert_timesheet_entry, fetch_recent_entries
+from database import insert_timesheet_entry, fetch_recent_entries, update_paid_status
 
 st.set_page_config(page_title="Timesheet Tracker", layout="centered")
 st.title("Timesheet Tracker")
@@ -42,4 +42,32 @@ df = load_entries()
 if df.empty:
     st.info("No entries yet. Submit your first timesheet above!")
 else:
-    st.dataframe(df, use_container_width=True)
+    unpaid_df = df[df["paid_status"] == "Unpaid"]
+
+    if not unpaid_df.empty:
+        st.subheader("Approve Unpaid Entries")
+        selection_labels = (
+            unpaid_df["created_at"]
+            + " — "
+            + unpaid_df["employee_name"]
+            + " / "
+            + unpaid_df["project_name"]
+            + " / "
+            + unpaid_df["hours_worked"].astype(str)
+            + "h"
+        )
+        options = list(zip(unpaid_df["id"].astype(str), selection_labels))
+        selected = st.selectbox(
+            "Select an unpaid entry to mark as Paid",
+            options=options,
+            format_func=lambda item: item[1],
+        )
+        if st.button("Mark as Paid"):
+            entry_id = int(selected[0])
+            update_paid_status(entry_id)
+            load_entries.clear()
+            st.success("Entry marked as Paid.")
+            df = load_entries()
+
+    st.subheader("Recent Entries")
+    st.dataframe(df.drop(columns=["id"]), use_container_width=True)
