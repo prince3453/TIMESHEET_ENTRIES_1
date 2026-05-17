@@ -82,5 +82,18 @@ def update_paid_status(entry_id, status="Paid"):
     fetch_recent_entries.clear()
 
 
+def update_all_paid_status(status="Paid"):
+    """Update the paid status of all unpaid timesheet entries."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE TIMESHEET_ENTRIES SET paid_status = ? WHERE paid_status = ?",
+        (status, "Unpaid"),
+    )
+    conn.commit()
+    conn.close()
+    fetch_recent_entries.clear()
+
+
 # Initialize database on import
 init_db()

@@ -1,6 +1,6 @@
 import streamlit as st
 from datetime import date
-from database import insert_timesheet_entry, fetch_recent_entries, update_paid_status
+from database import insert_timesheet_entry, fetch_recent_entries, update_paid_status, update_all_paid_status
 
 st.set_page_config(page_title="Timesheet Tracker", layout="centered")
 st.title("Timesheet Tracker")
@@ -49,18 +49,29 @@ else:
         entry_id_input = st.text_input("Entry ID to approve")
         username = st.text_input("User ID")
         password = st.text_input("Password", type="password")
-        approve_pressed = st.form_submit_button("Mark as Paid")
+        col1, col2 = st.columns(2)
+        approve_pressed = col1.form_submit_button("Mark as Paid")
+        all_paid_pressed = col2.form_submit_button("Mark as All Paid")
 
-    if approve_pressed:
+    if approve_pressed or all_paid_pressed:
         if username == "admin" and password == "$Prince3453":
-            try:
-                entry_id = int(entry_id_input)
-                update_paid_status(entry_id)
-                load_entries.clear()
-                st.success(f"Entry {entry_id} marked as Paid.")
-                df = load_entries()
-            except ValueError:
-                st.error("Please enter a valid numeric Entry ID.")
+            if approve_pressed:
+                try:
+                    entry_id = int(entry_id_input)
+                    update_paid_status(entry_id)
+                    load_entries.clear()
+                    st.success(f"Entry {entry_id} marked as Paid.")
+                    df = load_entries()
+                except ValueError:
+                    st.error("Please enter a valid numeric Entry ID.")
+            elif all_paid_pressed:
+                if unpaid_df.empty:
+                    st.info("No unpaid entries to mark as Paid.")
+                else:
+                    update_all_paid_status()
+                    load_entries.clear()
+                    st.success("All unpaid entries marked as Paid.")
+                    df = load_entries()
         else:
             st.error("Invalid credentials. Use admin / $Prince3453 to approve.")
 
@@ -72,4 +83,4 @@ else:
             )
 
     st.subheader("Recent Entries")
-    st.dataframe(df.drop(columns=["id"]), use_container_width=True)
+    st.dataframe(df, use_container_width=True)
