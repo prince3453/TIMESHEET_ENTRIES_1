@@ -10,8 +10,16 @@ def get_connection():
     Create and cache a Snowflake database connection.
     Uses credentials from st.secrets configuration.
     """
+    # Get the private key - try from secrets first, fall back to file
+    try:
+        private_key_str = st.secrets["snowflake"]["private_key"]
+    except:
+        # For local development, read from file
+        with open("rsa_key.p8", "r") as f:
+            private_key_str = f.read()
+    
     p_key = serialization.load_pem_private_key(
-        st.secrets["snowflake"]["private_key"].encode(),
+        private_key_str.encode(),
         password=None,
     )
     pkb = p_key.private_bytes(
