@@ -19,7 +19,7 @@ def init_db():
             hours_worked REAL NOT NULL,
             employee_name TEXT NOT NULL,
             project_name TEXT NOT NULL,
-            paid_status TEXT NOT NULL DEFAULT 'Paid',
+            paid_status TEXT NOT NULL DEFAULT 'Unpaid',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
@@ -28,7 +28,7 @@ def init_db():
     columns = [row[1] for row in cursor.fetchall()]
     if "paid_status" not in columns:
         cursor.execute(
-            "ALTER TABLE TIMESHEET_ENTRIES ADD COLUMN paid_status TEXT NOT NULL DEFAULT 'Paid'"
+            "ALTER TABLE TIMESHEET_ENTRIES ADD COLUMN paid_status TEXT NOT NULL DEFAULT 'Unpaid'"
         )
         conn.commit()
     conn.close()
@@ -47,7 +47,7 @@ def insert_timesheet_entry(entry_date, hours_worked, employee_name, project_name
         """INSERT INTO TIMESHEET_ENTRIES 
            (entry_date, hours_worked, employee_name, project_name, paid_status) 
            VALUES (?, ?, ?, ?, ?)""",
-        (entry_date.isoformat(), hours_worked, employee_name, project_name, "Paid"),
+        (entry_date.isoformat(), hours_worked, employee_name, project_name, "Unpaid"),
     )
     conn.commit()
     conn.close()
