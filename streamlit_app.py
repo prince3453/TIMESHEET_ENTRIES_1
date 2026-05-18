@@ -1,7 +1,14 @@
 import os
 import streamlit as st
 from datetime import date
-from database import insert_timesheet_entry, fetch_recent_entries, update_paid_status, update_all_paid_status
+from database import (
+    insert_timesheet_entry,
+    fetch_recent_entries,
+    update_entry_status,
+    update_paid_status,
+    update_unpaid_status,
+    update_all_paid_status,
+)
 
 st.set_page_config(page_title="Timesheet Tracker", layout="centered")
 st.title("Timesheet Tracker")
@@ -20,20 +27,25 @@ with st.form("timesheet_form", clear_on_submit=True):
     with col1:
         entry_date = st.date_input("Date", value=date.today())
         hours_worked = st.number_input(
-            "Hours Worked", min_value=0.0, max_value=24.0, value=8.0, step=0.5
+            "Hours Worked",
+            min_value=0.0,
+            max_value=24.0,
+            value=8.0,
+            step=0.01,
+            format="%.2f",
         )
     with col2:
-        employee_name = st.selectbox("Your Name", options=["Priyanshi", "Tilak"])
+        employee_name = st.selectbox("Your Name", options=["Priyanshi", "Tilak", "Riya"])
         project_name = st.selectbox("Project", options=PROJECTS)
 
     submitted = st.form_submit_button("Submit Entry")
 
 if submitted:
+    hours_worked = round(hours_worked, 2)
     insert_timesheet_entry(entry_date, hours_worked, employee_name, project_name)
-    st.success("Entry saved!")
+    st.success(f"Entry saved! Hours recorded: {hours_worked:.2f}")
 
 st.divider()
-st.subheader("Recent Entries")
 
 @st.cache_data(ttl=30)
 def load_entries():
@@ -43,50 +55,118 @@ if st.button("Refresh"):
     load_entries.clear()
 
 df = load_entries()
+
+with st.sidebar:
+    st.title("Admin")
+    admin_expander = st.expander("Run admin workflow")
+    with admin_expander:
+        st.write("Use your admin password to change the paid status of a timesheet entry.")
+        admin_password = st.text_input("Admin Password", type="password", key="admin_password")
+        entry_id_input = st.text_input("Entry ID to update", key="entry_id_input")
+        col1, col2, col3 = st.columns(3)
+        approve_pressed = col1.button("Mark as Paid")
+        unpaid_pressed = col2.button("Mark as Unpaid")
+        all_paid_pressed = col3.button("Mark all Paid")
+
 if df.empty:
     st.info("No entries yet. Submit your first timesheet above!")
 else:
     unpaid_df = df[df["paid_status"] == "Unpaid"]
 
-    st.subheader("Admin Approval")
-    with st.form("approval_form"):
-        entry_id_input = st.text_input("Entry ID to approve")
-        username = st.text_input("User ID")
-        password = st.text_input("Password", type="password")
-        col1, col2 = st.columns(2)
-        approve_pressed = col1.form_submit_button("Mark as Paid")
-        all_paid_pressed = col2.form_submit_button("Mark as All Paid")
-
-    if approve_pressed or all_paid_pressed:
+    if approve_pressed or unpaid_pressed or all_paid_pressed:
         if not ADMIN_USER or not ADMIN_PASSWORD:
-            st.error("Admin approval is not configured. Set ADMIN_USER and ADMIN_PASSWORD.")
-        elif username == ADMIN_USER and password == ADMIN_PASSWORD:
+            st.sidebar.error("Admin approval is not configured. Set ADMIN_USER and ADMIN_PASSWORD.")
+        elif admin_password == ADMIN_PASSWORD:
             if approve_pressed:
                 try:
                     entry_id = int(entry_id_input)
                     update_paid_status(entry_id)
                     load_entries.clear()
-                    st.success(f"Entry {entry_id} marked as Paid.")
+                    st.sidebar.success(f"Entry {entry_id} marked as Paid.")
                     df = load_entries()
                 except ValueError:
-                    st.error("Please enter a valid numeric Entry ID.")
+                    st.sidebar.error("Please enter a valid numeric Entry ID.")
+            elif unpaid_pressed:
+                try:
+                    entry_id = int(entry_id_input)
+                    update_unpaid_status(entry_id)
+                    load_entries.clear()
+                    st.sidebar.success(f"Entry {entry_id} marked as Unpaid.")
+                    df = load_entries()
+                except ValueError:
+                    st.sidebar.error("Please enter a valid numeric Entry ID.")
             elif all_paid_pressed:
                 if unpaid_df.empty:
-                    st.info("No unpaid entries to mark as Paid.")
+                    st.sidebar.info("No unpaid entries to mark as Paid.")
                 else:
                     update_all_paid_status()
                     load_entries.clear()
-                    st.success("All unpaid entries marked as Paid.")
+                    st.sidebar.success("All unpaid entries marked as Paid.")
                     df = load_entries()
         else:
-            st.error("Invalid credentials.")
+            st.sidebar.error("Invalid credentials.")
 
     if not unpaid_df.empty:
+        st.subheader("Unpaid Entries")
         st.markdown("**Unpaid entries currently available:**")
         for _, row in unpaid_df.iterrows():
             st.write(
-                f"ID {row['id']} — {row['created_at']} — {row['employee_name']} / {row['project_name']} / {row['hours_worked']}h"
+                f"ID {row['id']} — {row['created_at']} — {row['employee_name']} / {row['project_name']} / {row['hours_worked']:.2f}h"
             )
 
+    summary_df = (
+        df.assign(
+            paid_hours=lambda x: x.loc[x["paid_status"] == "Paid", "hours_worked"],
+            unpaid_hours=lambda x: x.loc[x["paid_status"] == "Unpaid", "hours_worked"],
+        )
+        .groupby("employee_name")
+        .agg(
+            total_hours=("hours_worked", "sum"),
+            paid_hours=("paid_hours", "sum"),
+            unpaid_hours=("unpaid_hours", "sum"),
+        )
+        .reset_index()
+    )
+    summary_df["total_hours"] = summary_df["total_hours"].round(2)
+    summary_df["paid_hours"] = summary_df["paid_hours"].fillna(0).round(2)
+    summary_df["unpaid_hours"] = summary_df["unpaid_hours"].fillna(0).round(2)
+    summary_df = summary_df.rename(
+        columns={
+            "employee_name": "Employee",
+            "total_hours": "Total Hours",
+            "paid_hours": "Paid Hours",
+            "unpaid_hours": "Unpaid Hours",
+        }
+    )
+
+    display_df = df.copy()
+    display_df["hours_worked"] = display_df["hours_worked"].round(2)
+    display_df = display_df.rename(
+        columns={
+            "id": "Entry Id",
+            "entry_date": "Date",
+            "hours_worked": "Hours Worked",
+            "employee_name": "Employee",
+            "project_name": "Project",
+            "paid_status": "Paid Status",
+            "created_at": "Created At",
+        }
+    )
+
+    st.subheader("Dashboard")
+    st.dataframe(
+        summary_df.style.hide(axis="index").format(
+            {"Total Hours": "{:.2f}", "Paid Hours": "{:.2f}", "Unpaid Hours": "{:.2f}"}
+        ),
+        use_container_width=True,
+    )
+
+    st.subheader("Paid vs Unpaid Hours")
+    chart_df = summary_df.set_index("Employee")[["Paid Hours", "Unpaid Hours"]]
+    st.bar_chart(chart_df)
+
     st.subheader("Recent Entries")
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(
+        display_df.style.hide(axis="index").format({"Hours Worked": "{:.2f}"}),
+        use_container_width=True,
+    )

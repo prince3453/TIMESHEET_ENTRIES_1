@@ -69,7 +69,7 @@ def fetch_recent_entries(limit=50):
     return df
 
 
-def update_paid_status(entry_id, status="Paid"):
+def update_entry_status(entry_id, status):
     """Update the paid status of a timesheet entry."""
     conn = get_connection()
     cursor = conn.cursor()
@@ -80,6 +80,16 @@ def update_paid_status(entry_id, status="Paid"):
     conn.commit()
     conn.close()
     fetch_recent_entries.clear()
+
+
+def update_paid_status(entry_id, status="Paid"):
+    """Update the paid status of a timesheet entry to Paid."""
+    update_entry_status(entry_id, status)
+
+
+def update_unpaid_status(entry_id):
+    """Update the paid status of a timesheet entry to Unpaid."""
+    update_entry_status(entry_id, "Unpaid")
 
 
 def update_all_paid_status(status="Paid"):
