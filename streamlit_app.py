@@ -153,6 +153,12 @@ else:
         }
     )
 
+    st.subheader("Recent Entries")
+    st.dataframe(
+        display_df.style.hide(axis="index").format({"Hours Worked": "{:.2f}"}),
+        use_container_width=True,
+    )
+
     st.subheader("Dashboard")
     st.dataframe(
         summary_df.style.hide(axis="index").format(
@@ -164,9 +170,3 @@ else:
     st.subheader("Paid vs Unpaid Hours")
     chart_df = summary_df.set_index("Employee")[["Paid Hours", "Unpaid Hours"]]
     st.bar_chart(chart_df)
-
-    st.subheader("Recent Entries")
-    st.dataframe(
-        display_df.style.hide(axis="index").format({"Hours Worked": "{:.2f}"}),
-        use_container_width=True,
-    )
