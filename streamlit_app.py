@@ -4,10 +4,10 @@ from datetime import date
 from database import (
     insert_timesheet_entry,
     fetch_recent_entries,
-    update_entry_status,
     update_paid_status,
     update_unpaid_status,
     update_all_paid_status,
+    delete_entry,
 )
 
 st.set_page_config(page_title="Timesheet Tracker", layout="centered")
@@ -60,20 +60,21 @@ with st.sidebar:
     st.title("Admin")
     admin_expander = st.expander("Run admin workflow")
     with admin_expander:
-        st.write("Use your admin password to change the paid status of a timesheet entry.")
+        st.write("Use your admin password to change the paid status of a timesheet entry or remove an entry.")
         admin_password = st.text_input("Admin Password", type="password", key="admin_password")
-        entry_id_input = st.text_input("Entry ID to update", key="entry_id_input")
-        col1, col2, col3 = st.columns(3)
+        entry_id_input = st.text_input("Entry ID to update or remove", key="entry_id_input")
+        col1, col2, col3, col4 = st.columns(4)
         approve_pressed = col1.button("Mark as Paid")
         unpaid_pressed = col2.button("Mark as Unpaid")
-        all_paid_pressed = col3.button("Mark all Paid")
+        delete_pressed = col3.button("Remove Entry")
+        all_paid_pressed = col4.button("Mark all Paid")
 
 if df.empty:
     st.info("No entries yet. Submit your first timesheet above!")
 else:
     unpaid_df = df[df["paid_status"] == "Unpaid"]
 
-    if approve_pressed or unpaid_pressed or all_paid_pressed:
+    if approve_pressed or unpaid_pressed or delete_pressed or all_paid_pressed:
         if not ADMIN_USER or not ADMIN_PASSWORD:
             st.sidebar.error("Admin approval is not configured. Set ADMIN_USER and ADMIN_PASSWORD.")
         elif admin_password == ADMIN_PASSWORD:
@@ -92,6 +93,15 @@ else:
                     update_unpaid_status(entry_id)
                     load_entries.clear()
                     st.sidebar.success(f"Entry {entry_id} marked as Unpaid.")
+                    df = load_entries()
+                except ValueError:
+                    st.sidebar.error("Please enter a valid numeric Entry ID.")
+            elif delete_pressed:
+                try:
+                    entry_id = int(entry_id_input)
+                    delete_entry(entry_id)
+                    load_entries.clear()
+                    st.sidebar.success(f"Entry {entry_id} removed.")
                     df = load_entries()
                 except ValueError:
                     st.sidebar.error("Please enter a valid numeric Entry ID.")

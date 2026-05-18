@@ -82,6 +82,19 @@ def update_entry_status(entry_id, status):
     fetch_recent_entries.clear()
 
 
+def delete_entry(entry_id):
+    """Delete a timesheet entry by ID."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "DELETE FROM TIMESHEET_ENTRIES WHERE id = ?",
+        (entry_id,),
+    )
+    conn.commit()
+    conn.close()
+    fetch_recent_entries.clear()
+
+
 def update_paid_status(entry_id, status="Paid"):
     """Update the paid status of a timesheet entry to Paid."""
     update_entry_status(entry_id, status)
