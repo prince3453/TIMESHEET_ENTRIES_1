@@ -106,14 +106,6 @@ else:
         else:
             st.sidebar.error("Invalid credentials.")
 
-    if not unpaid_df.empty:
-        st.subheader("Unpaid Entries")
-        st.markdown("**Unpaid entries currently available:**")
-        for _, row in unpaid_df.iterrows():
-            st.write(
-                f"ID {row['id']} — {row['created_at']} — {row['employee_name']} / {row['project_name']} / {row['hours_worked']:.2f}h"
-            )
-
     summary_df = (
         df.assign(
             paid_hours=lambda x: x.loc[x["paid_status"] == "Paid", "hours_worked"],
