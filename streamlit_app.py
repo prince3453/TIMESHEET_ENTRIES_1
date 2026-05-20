@@ -27,7 +27,7 @@ sync_existing_entries()
 
 
 ADMIN_USER = os.environ.get("ADMIN_USER", "admin")
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "$Prince3453")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "Admin@3453")
 
 PROJECTS = [
     "Project Whetstone",
@@ -137,12 +137,7 @@ with col1:
         insert_timesheet_entry(entry_date, hours_worked, employee_name, project_name)
         st.success(f"✓ Entry saved! {employee_name} recorded {hours_worked:.2f} hours")
         fetch_recent_entries.clear()
-        st.experimental_rerun()
-
-with col2:
-    st.subheader("Employee Summary")
-    summary_df = get_employee_summary()
-    if not summary_df.empty:
+            st.rerun()
         summary_df = summary_df.rename(columns={
             "employee_id": "ID",
             "name": "Employee",
