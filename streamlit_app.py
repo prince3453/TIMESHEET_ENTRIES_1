@@ -136,6 +136,8 @@ with col1:
         hours_worked = round(hours_worked, 2)
         insert_timesheet_entry(entry_date, hours_worked, employee_name, project_name)
         st.success(f"✓ Entry saved! {employee_name} recorded {hours_worked:.2f} hours")
+        fetch_recent_entries.clear()
+        st.experimental_rerun()
 
 with col2:
     st.subheader("Employee Summary")
